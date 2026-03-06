@@ -1,0 +1,13 @@
+name: AutoTransport
+version: '0.1'
+main: com.github.darksoulq.auto_transport.AutoTransport
+api-version: '1.21'
+
+dependencies:
+  server:
+    Minetorio:
+      required: true
+      load: BEFORE
+    MTVehicles:
+      required: true
+      load: BEFORE

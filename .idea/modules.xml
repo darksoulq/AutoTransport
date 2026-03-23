@@ -2,6 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/AutoTransport.iml" filepath="$PROJECT_DIR$/.idea/modules/AutoTransport.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/AutoTransport.main.iml" filepath="$PROJECT_DIR$/.idea/modules/AutoTransport.main.iml" />
     </modules>
   </component>

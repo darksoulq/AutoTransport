@@ -22,7 +22,7 @@ repositories {
 dependencies {
     compileOnly("io.papermc.paper:paper-api:1.21.11-R0.1-SNAPSHOT")
     compileOnly('com.MT:MTP:0.99')
-    implementation('com.github.MTVehicles:MinetopiaVehicles:2.5.7')
+    implementation('com.github.MTVehicles:MinetopiaVehicles:b564c50ab8')
 }
 
 tasks {

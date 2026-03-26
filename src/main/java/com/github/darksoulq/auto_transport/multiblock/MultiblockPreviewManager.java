@@ -16,6 +16,7 @@ import org.bukkit.block.data.Directional;
 import org.bukkit.entity.BlockDisplay;
 import org.bukkit.entity.Display;
 import org.bukkit.entity.EntityType;
+import org.bukkit.entity.ItemDisplay;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.util.RayTraceResult;
@@ -84,26 +85,30 @@ public class MultiblockPreviewManager {
 
         Location coreLoc = ray.getHitBlock().getLocation().add(ray.getHitBlockFace().getDirection());
         BlockFace facing = RotationUtil.getPlacementFacing(p);
+        PlacementContext ctx = new PlacementContext(p, coreLoc, facing, hand);
 
         if (lastPreviewLocations.containsKey(p.getUniqueId())) {
             Location lastLoc = lastPreviewLocations.get(p.getUniqueId());
             BlockFace lastFace = lastPreviewFacings.get(p.getUniqueId());
             if (lastLoc.equals(coreLoc) && lastFace == facing) {
-                updateGlowColors(p.getUniqueId(), CustomDeviceRegistry.multiblockDummies.get(deviceName), coreLoc, facing);
+                updateGlowColors(p.getUniqueId(), CustomDeviceRegistry.multiblockDummies.get(deviceName), ctx);
                 return;
             }
         }
 
-        buildPreview(p.getUniqueId(), CustomDeviceRegistry.multiblockDummies.get(deviceName), coreLoc, facing);
+        buildPreview(p.getUniqueId(), CustomDeviceRegistry.multiblockDummies.get(deviceName), ctx);
         lastPreviewLocations.put(p.getUniqueId(), coreLoc);
         lastPreviewFacings.put(p.getUniqueId(), facing);
     }
 
-    private static void buildPreview(UUID uuid, MultiblockDevice dummy, Location coreLoc, BlockFace facing) {
+    private static void buildPreview(UUID uuid, MultiblockDevice dummy, PlacementContext ctx) {
         clearPreview(uuid);
         List<Display> displays = new ArrayList<>();
-        boolean isValid = MultiblockManager.isValidPlacement(dummy, coreLoc, facing);
+        boolean isValid = MultiblockManager.isValidPlacement(dummy, ctx);
         Color glowColor = isValid ? Color.LIME : Color.RED;
+
+        Location coreLoc = ctx.coreLocation;
+        BlockFace facing = ctx.facing;
 
         BlockData coreData = dummy.getMaterial().createBlockData();
         if (coreData instanceof Directional dir) {
@@ -118,7 +123,7 @@ public class MultiblockPreviewManager {
         coreDisplay.setGlowColorOverride(glowColor);
         displays.add(coreDisplay);
 
-        for (Map.Entry<Vector, BlockData> entry : dummy.getStructureMap().entrySet()) {
+        for (Map.Entry<Vector, BlockData> entry : dummy.getStructureMap(ctx).entrySet()) {
             Vector rotated = RotationUtil.rotateVector(entry.getKey(), facing);
             Location target = coreLoc.clone().add(rotated);
             BlockData rotatedData = RotationUtil.rotateBlockData(entry.getValue(), facing);
@@ -131,25 +136,31 @@ public class MultiblockPreviewManager {
         }
 
         if (dummy instanceof ComplexDisplay cd) {
-            DisplayModel model = cd.getDisplayModel();
+            DisplayModel model = cd.getDisplayModel(ctx);
             if (model != null) {
                 ModelState state = model.getState(cd.getActiveState());
                 if (state != null) {
                     for (ModelPart part : state.getParts()) {
                         Display display = null;
                         Vector rotatedOffset = RotationUtil.rotateVector(part.getVisual().getOffset(), facing);
-                        Location target = coreLoc.clone().add(rotatedOffset);
+                        Location target = coreLoc.clone().add(0.5, 0.0, 0.5).add(rotatedOffset);
+                        target.setYaw(RotationUtil.getYawFromFace(facing));
 
                         if (part.getVisual().getItem() != null) {
-                            display = (Display) coreLoc.getWorld().spawnEntity(target, EntityType.ITEM_DISPLAY);
+                            ItemDisplay itemD = (ItemDisplay) target.getWorld().spawnEntity(target, EntityType.ITEM_DISPLAY);
+                            itemD.setItemStack(part.getVisual().getItem());
+                            display = itemD;
                         } else if (part.getVisual().getBlock() != null) {
-                            display = (Display) coreLoc.getWorld().spawnEntity(target, EntityType.BLOCK_DISPLAY);
+                            BlockDisplay blockD = (BlockDisplay) target.getWorld().spawnEntity(target, EntityType.BLOCK_DISPLAY);
+                            blockD.setBlock(RotationUtil.rotateBlockData(part.getVisual().getBlock(), facing));
+                            display = blockD;
                         }
 
                         if (display != null) {
                             ComplexDisplayManager.applyTransform(display, part.getVisual(), null, facing, 0, coreLoc);
                             display.setGlowing(true);
                             display.setGlowColorOverride(glowColor);
+                            display.setBrightness(new Display.Brightness(15, 15));
                             displays.add(display);
                         }
                     }
@@ -160,11 +171,11 @@ public class MultiblockPreviewManager {
         activePreviews.put(uuid, displays);
     }
 
-    private static void updateGlowColors(UUID uuid, MultiblockDevice dummy, Location coreLoc, BlockFace facing) {
+    private static void updateGlowColors(UUID uuid, MultiblockDevice dummy, PlacementContext ctx) {
         List<Display> displays = activePreviews.get(uuid);
         if (displays == null) return;
 
-        boolean isValid = MultiblockManager.isValidPlacement(dummy, coreLoc, facing);
+        boolean isValid = MultiblockManager.isValidPlacement(dummy, ctx);
         Color glowColor = isValid ? Color.LIME : Color.RED;
 
         for (Display display : displays) {

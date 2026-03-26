@@ -36,6 +36,11 @@ public class DeviceSettings {
         return this;
     }
 
+    public DeviceSettings useUi(boolean use) {
+        device.setUseUI(use);
+        return this;
+    }
+
     public DeviceSettings uiAuto(boolean openable) {
         device.setUseUI(true);
         device.setOpenable(openable);

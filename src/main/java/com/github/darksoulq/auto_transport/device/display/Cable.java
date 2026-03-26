@@ -1,9 +1,13 @@
 package com.github.darksoulq.auto_transport.device.display;
 
+import com.MT.xxxtrigger50xxx.MineMain;
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
 import org.bukkit.entity.BlockDisplay;
 import org.bukkit.entity.Display;
+import org.bukkit.entity.Entity;
+import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.util.Transformation;
 import org.bukkit.util.Vector;
 
@@ -14,9 +18,19 @@ public class Cable {
 
     private final List<BlockDisplay> segments = new ArrayList<>();
     private final int resolution;
+    private final NamespacedKey key;
 
-    public Cable(int resolution) {
+    public Cable(String id, int resolution) {
+        this.key = new NamespacedKey(MineMain.getPlugin(), "cbl_" + id);
         this.resolution = resolution;
+    }
+
+    public void clearGhosts(Location center) {
+        for (Entity e : center.getWorld().getNearbyEntities(center, 15.0, 15.0, 15.0)) {
+            if (e instanceof BlockDisplay bd && bd.getPersistentDataContainer().has(key, PersistentDataType.BYTE)) {
+                bd.remove();
+            }
+        }
     }
 
     public void update(Location start, Location end, double sag) {
@@ -29,6 +43,7 @@ public class Cable {
             BlockDisplay display = start.getWorld().spawn(start, BlockDisplay.class);
             display.setBlock(Material.BLACK_CONCRETE.createBlockData());
             display.setBrightness(new Display.Brightness(15, 15));
+            display.getPersistentDataContainer().set(key, PersistentDataType.BYTE, (byte) 1);
             DisplayCullingManager.track(display);
             segments.add(display);
         }
@@ -64,10 +79,10 @@ public class Cable {
             trans.getTranslation().set(-0.02f, -0.02f, 0f);
 
             display.setInterpolationDelay(0);
-            display.setInterpolationDuration(2);
+            display.setInterpolationDuration(3);
             display.setTransformation(trans);
 
-            display.setTeleportDuration(2);
+            display.setTeleportDuration(3);
             display.teleport(loc);
 
             prev = curr;

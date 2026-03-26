@@ -24,7 +24,7 @@ public class MultiblockManager {
 
     private static final NamespacedKey PDC_KEY = new NamespacedKey(MineMain.getPlugin(), "multiblock_mapping");
     private static final NamespacedKey FACING_KEY = new NamespacedKey(MineMain.getPlugin(), "multiblock_facing");
-    
+
     private static final Map<Location, Location> secondaryToCore = new ConcurrentHashMap<>();
     private static final Map<Location, BlockFace> coreToFacing = new ConcurrentHashMap<>();
     private static Field allDevicesField;
@@ -58,7 +58,7 @@ public class MultiblockManager {
         Location core = device.getLocationREADONLY();
         BlockFace facing = device.getFacing();
 
-        for (Vector rel : device.getStructureMap().keySet()) {
+        for (Vector rel : device.getStructureMap(null).keySet()) {
             Vector rotated = RotationUtil.rotateVector(rel, facing);
             Location target = core.clone().add(rotated);
             secondaryToCore.put(target, core);
@@ -67,12 +67,21 @@ public class MultiblockManager {
     }
 
     public static BlockFace getStoredFacing(Location coreLoc) {
-        return coreToFacing.get(coreLoc);
+        if (coreLoc == null) return null;
+        BlockFace face = coreToFacing.get(coreLoc);
+        if (face != null) return face;
+
+        if (coreLoc.isWorldLoaded()) {
+            loadChunk(coreLoc.getChunk());
+            return coreToFacing.get(coreLoc);
+        }
+
+        return null;
     }
 
     public static void loadChunk(Chunk chunk) {
         PersistentDataContainer pdc = chunk.getPersistentDataContainer();
-        
+
         if (pdc.has(FACING_KEY, PersistentDataType.STRING)) {
             String fData = pdc.get(FACING_KEY, PersistentDataType.STRING);
             if (fData != null && !fData.isEmpty()) {
@@ -115,11 +124,15 @@ public class MultiblockManager {
     public static void saveChunk(Chunk chunk) {
         StringBuilder sb = new StringBuilder();
         boolean hasData = false;
+        int cx = chunk.getX();
+        int cz = chunk.getZ();
+        String worldName = chunk.getWorld().getName();
 
         for (Map.Entry<Location, Location> entry : secondaryToCore.entrySet()) {
-            if (entry.getKey().getChunk().equals(chunk)) {
-                sb.append(TUMaths.locationString(entry.getKey())).append("=")
-                  .append(TUMaths.locationString(entry.getValue())).append(";");
+            Location loc = entry.getKey();
+            if ((loc.getBlockX() >> 4) == cx && (loc.getBlockZ() >> 4) == cz && loc.getWorld().getName().equals(worldName)) {
+                sb.append(TUMaths.locationString(loc)).append("=")
+                    .append(TUMaths.locationString(entry.getValue())).append(";");
                 hasData = true;
             }
         }
@@ -135,9 +148,10 @@ public class MultiblockManager {
         boolean hasFData = false;
 
         for (Map.Entry<Location, BlockFace> entry : coreToFacing.entrySet()) {
-            if (entry.getKey().getChunk().equals(chunk)) {
-                fsb.append(TUMaths.locationString(entry.getKey())).append("=")
-                   .append(entry.getValue().name()).append(";");
+            Location loc = entry.getKey();
+            if ((loc.getBlockX() >> 4) == cx && (loc.getBlockZ() >> 4) == cz && loc.getWorld().getName().equals(worldName)) {
+                fsb.append(TUMaths.locationString(loc)).append("=")
+                    .append(entry.getValue().name()).append(";");
                 hasFData = true;
             }
         }
@@ -150,16 +164,33 @@ public class MultiblockManager {
     }
 
     public static boolean isSecondaryBlock(Location loc) {
-        return secondaryToCore.containsKey(loc);
+        if (loc == null) return false;
+        if (secondaryToCore.containsKey(loc)) return true;
+
+        if (loc.isWorldLoaded()) {
+            loadChunk(loc.getChunk());
+            return secondaryToCore.containsKey(loc);
+        }
+        return false;
     }
 
     public static Device getCoreDevice(Location loc) {
+        if (loc == null) return null;
         Location coreLoc = secondaryToCore.get(loc);
+
+        if (coreLoc == null && loc.isWorldLoaded()) {
+            loadChunk(loc.getChunk());
+            coreLoc = secondaryToCore.get(loc);
+        }
+
         return coreLoc != null ? Device.getDevice(coreLoc) : null;
     }
 
-    public static boolean isValidPlacement(MultiblockDevice device, Location core, BlockFace facing) {
-        for (Map.Entry<Vector, BlockData> entry : device.getStructureMap().entrySet()) {
+    public static boolean isValidPlacement(MultiblockDevice device, PlacementContext context) {
+        Location core = context != null ? context.coreLocation : device.getLocationREADONLY();
+        BlockFace facing = context != null ? context.facing : device.getFacing();
+
+        for (Map.Entry<Vector, BlockData> entry : device.getStructureMap(context).entrySet()) {
             Vector rotated = RotationUtil.rotateVector(entry.getKey(), facing);
             Location target = core.clone().add(rotated);
 
@@ -170,10 +201,11 @@ public class MultiblockManager {
         return true;
     }
 
-    public static boolean validateAndBuild(MultiblockDevice device, BlockFace facing) {
-        Location core = device.getLocationREADONLY();
+    public static boolean validateAndBuild(MultiblockDevice device, PlacementContext context) {
+        Location core = context.coreLocation;
+        BlockFace facing = context.facing;
 
-        if (!isValidPlacement(device, core, facing)) {
+        if (!isValidPlacement(device, context)) {
             return false;
         }
 
@@ -188,7 +220,7 @@ public class MultiblockManager {
             core.getBlock().setBlockData(coreData);
         }
 
-        for (Map.Entry<Vector, BlockData> entry : device.getStructureMap().entrySet()) {
+        for (Map.Entry<Vector, BlockData> entry : device.getStructureMap(context).entrySet()) {
             Vector rotated = RotationUtil.rotateVector(entry.getKey(), facing);
             Location target = core.clone().add(rotated);
             BlockData rotatedData = RotationUtil.rotateBlockData(entry.getValue(), facing);
@@ -197,7 +229,7 @@ public class MultiblockManager {
             secondaryToCore.put(target, core);
             injectDevice(target, device);
         }
-        
+
         saveChunk(core.getChunk());
         return true;
     }
@@ -215,7 +247,7 @@ public class MultiblockManager {
         core.getBlock().setType(Material.AIR);
         coreToFacing.remove(core);
 
-        for (Vector rel : device.getStructureMap().keySet()) {
+        for (Vector rel : device.getStructureMap(null).keySet()) {
             Vector rotated = RotationUtil.rotateVector(rel, facing);
             Location target = core.clone().add(rotated);
 
@@ -224,7 +256,7 @@ public class MultiblockManager {
             target.getBlock().setType(Material.AIR);
             saveChunk(target.getChunk());
         }
-        
+
         saveChunk(core.getChunk());
     }
 }

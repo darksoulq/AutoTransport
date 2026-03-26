@@ -2,14 +2,18 @@ package com.github.darksoulq.auto_transport;
 
 import com.github.darksoulq.auto_transport.device.DeviceEvents;
 import com.github.darksoulq.auto_transport.device.FuelPump;
+import com.github.darksoulq.auto_transport.device.GarageDoor;
 import com.github.darksoulq.auto_transport.device.display.ComplexDisplayManager;
 import com.github.darksoulq.auto_transport.device.display.DisplayCullingManager;
 import com.github.darksoulq.auto_transport.device.items.FuelNozzleItem;
+import com.github.darksoulq.auto_transport.device.items.GarageRemoteItem;
 import com.github.darksoulq.auto_transport.item.CustomItemListener;
 import com.github.darksoulq.auto_transport.item.CustomItemRegistry;
 import com.github.darksoulq.auto_transport.multiblock.MultiblockPreviewManager;
+import com.github.darksoulq.auto_transport.util.VaultHook;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.bukkit.scheduler.BukkitRunnable;
 
 public final class AutoTransport extends JavaPlugin {
 
@@ -17,14 +21,22 @@ public final class AutoTransport extends JavaPlugin {
     public void onEnable() {
         Bukkit.getServer().getPluginManager().registerEvents(new DeviceEvents(), this);
         Bukkit.getServer().getPluginManager().registerEvents(new CustomItemListener(), this);
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                VaultHook.setupEconomy();
+            }
+        }.runTask(this);
 
         CustomItemRegistry.register(new FuelNozzleItem());
+        CustomItemRegistry.register(new GarageRemoteItem());
 
         MultiblockPreviewManager.start();
         DisplayCullingManager.start();
         ComplexDisplayManager.start();
 
         FuelPump.addDevice();
+        GarageDoor.addDevice();
     }
 
     @Override

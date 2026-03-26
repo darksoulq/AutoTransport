@@ -11,3 +11,6 @@ dependencies:
     MTVehicles:
       required: true
       load: BEFORE
+    Vault:
+      required: true
+      load: BEFORE

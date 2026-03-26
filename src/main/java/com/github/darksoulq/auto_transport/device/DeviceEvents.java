@@ -1,12 +1,15 @@
 package com.github.darksoulq.auto_transport.device;
 
+import com.github.darksoulq.auto_transport.device.display.Cable;
 import com.github.darksoulq.auto_transport.device.display.ComplexDisplay;
 import com.github.darksoulq.auto_transport.device.display.ComplexDisplayManager;
 import com.github.darksoulq.auto_transport.device.display.DisplayCullingManager;
+import com.github.darksoulq.auto_transport.device.items.GarageRemoteItem;
 import com.github.darksoulq.auto_transport.device.traits.InteractiveDevice;
 import com.github.darksoulq.auto_transport.multiblock.MultiblockDevice;
 import com.github.darksoulq.auto_transport.multiblock.MultiblockManager;
 import com.github.darksoulq.auto_transport.multiblock.MultiblockPreviewManager;
+import com.github.darksoulq.auto_transport.multiblock.PlacementContext;
 import com.github.darksoulq.auto_transport.multiblock.RotationUtil;
 import com.MT.xxxtrigger50xxx.API.MTEvents.BreakDeviceEvent;
 import com.MT.xxxtrigger50xxx.API.MTEvents.PlaceDeviceEvent;
@@ -21,8 +24,10 @@ import org.bukkit.event.block.Action;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.entity.EntityExplodeEvent;
 import org.bukkit.event.inventory.HopperInventorySearchEvent;
+import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryMoveItemEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.world.ChunkLoadEvent;
 import org.bukkit.event.world.ChunkUnloadEvent;
@@ -36,7 +41,9 @@ public class DeviceEvents implements Listener {
     public void onDevicePlace(PlaceDeviceEvent event) {
         if (event.getDevice() instanceof MultiblockDevice mbDevice) {
             BlockFace facing = RotationUtil.getPlacementFacing(event.getPlayer());
-            if (!MultiblockManager.validateAndBuild(mbDevice, facing)) {
+            PlacementContext context = new PlacementContext(event.getPlayer(), mbDevice.getLocationREADONLY(), facing, event.getPlayer().getInventory().getItemInMainHand());
+
+            if (!MultiblockManager.validateAndBuild(mbDevice, context)) {
                 event.setCancelled(true);
                 event.setReason("Not enough space to assemble multiblock structure.");
                 return;
@@ -44,7 +51,7 @@ public class DeviceEvents implements Listener {
                 MultiblockPreviewManager.clearPreview(event.getPlayer().getUniqueId());
             }
         }
-        
+
         if (event.getDevice() instanceof ComplexDisplay cd) {
             ComplexDisplayManager.sync(cd, (Device) cd, true);
         }
@@ -60,40 +67,6 @@ public class DeviceEvents implements Listener {
         }
     }
 
-    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
-    public void onBlockBreak(BlockBreakEvent event) {
-        if (MultiblockManager.isSecondaryBlock(event.getBlock().getLocation())) {
-            Device core = MultiblockManager.getCoreDevice(event.getBlock().getLocation());
-            if (core != null) {
-                event.setCancelled(true);
-                
-                BreakDeviceEvent breakEvent = new BreakDeviceEvent(core, event.getPlayer());
-                Bukkit.getPluginManager().callEvent(breakEvent);
-
-                if (!breakEvent.isCancelled()) {
-                    core.onDeviceRemove();
-                    core.cleanup();
-                    core.iconCleanup();
-                    core.removeDevice();
-                    core.dropInventory();
-                    core.getInventory().clear();
-                    event.getBlock().getWorld().dropItemNaturally(core.getLocationREADONLY().add(0.5, 0.5, 0.5), core.getDeviceStack());
-
-                    if (core instanceof ComplexDisplay cd) {
-                        ComplexDisplayManager.clear(cd);
-                    }
-                    if (core instanceof MultiblockDevice mb) {
-                        MultiblockManager.removeStructure(mb);
-                    }
-                    core.getLocationREADONLY().getBlock().setType(Material.AIR);
-                }
-            } else {
-                event.getBlock().setType(Material.AIR);
-                MultiblockManager.removeSecondary(event.getBlock().getLocation());
-            }
-        }
-    }
-
     @EventHandler(priority = EventPriority.LOWEST)
     public void onInteract(PlayerInteractEvent event) {
         if (event.getHand() != org.bukkit.inventory.EquipmentSlot.HAND) return;
@@ -105,6 +78,10 @@ public class DeviceEvents implements Listener {
                 if (core == null) core = Device.getDevice(event.getClickedBlock().getLocation());
 
                 if (core != null) {
+                    if (event.getPlayer().isSneaking() && event.getAction() == Action.RIGHT_CLICK_BLOCK) {
+                        event.setCancelled(true);
+                    }
+
                     if (core instanceof InteractiveDevice interactive) {
                         if (interactive.onInteract(event)) {
                             event.setCancelled(true);
@@ -132,7 +109,7 @@ public class DeviceEvents implements Listener {
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onHopperSearch(HopperInventorySearchEvent event) {
-        if (event.getSearchBlock() != null && MultiblockManager.isSecondaryBlock(event.getSearchBlock().getLocation())) {
+        if (MultiblockManager.isSecondaryBlock(event.getSearchBlock().getLocation())) {
             Device core = MultiblockManager.getCoreDevice(event.getSearchBlock().getLocation());
             if (core != null && core.getInventory() != null) {
                 event.setInventory(core.getInventory());

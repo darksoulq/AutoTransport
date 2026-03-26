@@ -50,7 +50,7 @@ public class ComplexDisplayManager {
             return;
         }
 
-        DisplayModel model = cd.getDisplayModel();
+        DisplayModel model = cd.getDisplayModel(null);
         if (model == null) return;
 
         ModelState targetState = model.getState(cd.getActiveState());

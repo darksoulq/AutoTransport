@@ -3,11 +3,13 @@ package com.github.darksoulq.auto_transport.device.items;
 import com.MT.triggersUtility.TUMaths;
 import com.MT.xxxtrigger50xxx.Devices.Device;
 import com.MT.xxxtrigger50xxx.MineMain;
-import com.github.darksoulq.auto_transport.device.FuelPump;
+import com.github.darksoulq.auto_transport.device.AbstractPump;
 import com.github.darksoulq.auto_transport.item.CustomItem;
 import com.github.darksoulq.auto_transport.item.CustomItemRegistry;
+import io.papermc.paper.datacomponent.DataComponentTypes;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import nl.mtvehicles.core.events.VehicleEnterEvent;
-import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
@@ -17,7 +19,6 @@ import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.player.PlayerItemHeldEvent;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
 
 public class FuelNozzleItem implements CustomItem {
@@ -31,16 +32,19 @@ public class FuelNozzleItem implements CustomItem {
     }
 
     @Override
+    @SuppressWarnings("UnstableApiUsage")
     public ItemStack create(Object... context) {
         Location pumpLoc = (Location) context[0];
         ItemStack item = new ItemStack(Material.LEAD);
-        ItemMeta meta = item.getItemMeta();
-        if (meta != null) {
-            meta.setDisplayName(ChatColor.GOLD + "Fuel Nozzle");
+
+        item.setData(DataComponentTypes.ITEM_NAME, Component.text("Fuel Nozzle").color(NamedTextColor.GOLD));
+        item.setData(DataComponentTypes.ITEM_MODEL, NamespacedKey.fromString("auto_transport:fuel_nozzle"));
+
+        item.editMeta(meta -> {
             meta.getPersistentDataContainer().set(CustomItemRegistry.CUSTOM_ITEM_KEY, PersistentDataType.STRING, ID);
             meta.getPersistentDataContainer().set(PUMP_LOC_KEY, PersistentDataType.STRING, TUMaths.locationString(pumpLoc));
-            item.setItemMeta(meta);
-        }
+        });
+
         return item;
     }
 
@@ -50,7 +54,7 @@ public class FuelNozzleItem implements CustomItem {
 
         Player player = event.getPlayer();
         ItemStack hand = player.getInventory().getItem(event.getHand());
-        FuelPump pump = getPumpFromItem(hand);
+        AbstractPump pump = getPumpFromItem(hand);
 
         if (pump != null) {
             event.setCancelled(true);
@@ -60,7 +64,7 @@ public class FuelNozzleItem implements CustomItem {
 
     @Override
     public void onDrop(PlayerDropItemEvent event) {
-        FuelPump pump = getPumpFromItem(event.getItemDrop().getItemStack());
+        AbstractPump pump = getPumpFromItem(event.getItemDrop().getItemStack());
         if (pump != null) {
             event.setCancelled(true);
             event.getItemDrop().remove();
@@ -71,7 +75,7 @@ public class FuelNozzleItem implements CustomItem {
     @Override
     public void onHold(PlayerItemHeldEvent event) {
         ItemStack prev = event.getPlayer().getInventory().getItem(event.getPreviousSlot());
-        FuelPump pump = getPumpFromItem(prev);
+        AbstractPump pump = getPumpFromItem(prev);
         if (pump != null) {
             pump.dropNozzle(event.getPlayer(), false);
             event.getPlayer().getInventory().setItem(event.getPreviousSlot(), new ItemStack(Material.AIR));
@@ -82,7 +86,7 @@ public class FuelNozzleItem implements CustomItem {
     public void onVehicleEnter(VehicleEnterEvent event) {
         Player player = event.getPlayer();
         ItemStack hand = player.getInventory().getItemInMainHand();
-        FuelPump pump = getPumpFromItem(hand);
+        AbstractPump pump = getPumpFromItem(hand);
 
         if (pump != null) {
             event.setCancelled(true);
@@ -90,12 +94,12 @@ public class FuelNozzleItem implements CustomItem {
         }
     }
 
-    private FuelPump getPumpFromItem(ItemStack item) {
+    private AbstractPump getPumpFromItem(ItemStack item) {
         if (item == null || !item.hasItemMeta()) return null;
         String locStr = item.getItemMeta().getPersistentDataContainer().get(PUMP_LOC_KEY, PersistentDataType.STRING);
         if (locStr == null) return null;
 
         Device device = Device.getDevice(TUMaths.getStringLocation(locStr));
-        return device instanceof FuelPump ? (FuelPump) device : null;
+        return device instanceof AbstractPump ? (AbstractPump) device : null;
     }
 }

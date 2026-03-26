@@ -7,6 +7,7 @@ import com.github.darksoulq.auto_transport.device.AbstractPump;
 import com.github.darksoulq.auto_transport.item.CustomItem;
 import com.github.darksoulq.auto_transport.item.CustomItemRegistry;
 import io.papermc.paper.datacomponent.DataComponentTypes;
+import net.kyori.adventure.key.Key;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import nl.mtvehicles.core.events.VehicleEnterEvent;
@@ -38,7 +39,7 @@ public class FuelNozzleItem implements CustomItem {
         ItemStack item = new ItemStack(Material.LEAD);
 
         item.setData(DataComponentTypes.ITEM_NAME, Component.text("Fuel Nozzle").color(NamedTextColor.GOLD));
-        item.setData(DataComponentTypes.ITEM_MODEL, NamespacedKey.fromString("auto_transport:fuel_nozzle"));
+        item.setData(DataComponentTypes.ITEM_MODEL, Key.key("auto_transport", "fuel_nozzle"));
 
         item.editMeta(meta -> {
             meta.getPersistentDataContainer().set(CustomItemRegistry.CUSTOM_ITEM_KEY, PersistentDataType.STRING, ID);

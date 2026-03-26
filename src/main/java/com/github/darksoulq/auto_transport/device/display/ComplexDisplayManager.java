@@ -83,7 +83,7 @@ public class ComplexDisplayManager {
             if (part.getAnimation() != null && !part.getAnimation().getFrames().isEmpty()) {
                 AnimationState animState = new AnimationState(part.getAnimation());
                 instance.animations.put(part.getId(), animState);
-                applyTransform(display, part.getVisual(), animState.getCurrentFrame(), buildFacing, animState.getCurrentFrame().getDurationTicks(), core);
+                applyTransform(display, part.getVisual(), animState.getCurrentFrame(), buildFacing, animState.getCurrentFrame().durationTicks(), core);
             } else {
                 instance.animations.remove(part.getId());
                 applyTransform(display, part.getVisual(), null, buildFacing, 0, core);
@@ -137,7 +137,7 @@ public class ComplexDisplayManager {
                 state.ticksInFrame++;
                 Keyframe currentFrame = state.animation.getFrames().get(state.currentFrameIndex);
 
-                if (state.ticksInFrame >= currentFrame.getDurationTicks()) {
+                if (state.ticksInFrame >= currentFrame.durationTicks()) {
                     state.currentFrameIndex++;
 
                     if (state.currentFrameIndex >= state.animation.getFrames().size()) {
@@ -159,7 +159,7 @@ public class ComplexDisplayManager {
                     Display display = instance.displays.get(partId);
 
                     if (display != null) {
-                        applyTransform(display, instance.currentState.getPart(partId).getVisual(), nextFrame, buildFacing, nextFrame.getDurationTicks(), core);
+                        applyTransform(display, instance.currentState.getPart(partId).getVisual(), nextFrame, buildFacing, nextFrame.durationTicks(), core);
                     }
                 }
             }
@@ -195,9 +195,9 @@ public class ComplexDisplayManager {
         Vector tScale = part.getScale().clone();
 
         if (frame != null) {
-            tOffset.add(frame.getTranslation());
-            tRot.add(frame.getRotation());
-            tScale.multiply(frame.getScale());
+            tOffset.add(frame.translation());
+            tRot.add(frame.rotation());
+            tScale.multiply(frame.scale());
         }
 
         Vector rotatedOffset = RotationUtil.rotateVector(tOffset, buildFacing);

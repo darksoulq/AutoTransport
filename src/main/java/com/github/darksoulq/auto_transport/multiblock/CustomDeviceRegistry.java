@@ -31,6 +31,7 @@ public class CustomDeviceRegistry {
         private final Material material;
         private final Supplier<Device> instanceProvider;
 
+        private String model = "none";
         private String description = "";
         private ItemMenu.Category category = null;
         private List<ItemStack> recipeIngredients = null;
@@ -41,6 +42,11 @@ public class CustomDeviceRegistry {
             this.deviceClass = deviceClass;
             this.material = material;
             this.instanceProvider = instanceProvider;
+        }
+
+        public Builder withModel(String model) {
+            this.model = model;
+            return this;
         }
 
         public Builder withDescription(String description) {
@@ -62,7 +68,7 @@ public class CustomDeviceRegistry {
         public void register() {
             MineItems.itemNames.put(name, name);
             MineItems.itemDescs.put(name, description);
-            MineItems.itemModelData.put(name, "none");
+            MineItems.itemModelData.put(name, model);
             MineItems.itemMaterial.put(name, material);
             MineItems.devValueForItems.put(name, "none");
             MineItems.pdcKey.put(name, new NamespacedKey(MineMain.getPlugin(), MineItems.getPDCString(name)));

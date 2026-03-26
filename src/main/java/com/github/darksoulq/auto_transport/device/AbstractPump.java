@@ -34,8 +34,11 @@ import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.util.Transformation;
 import org.bukkit.util.Vector;
+import org.joml.Quaternionf;
+import org.joml.Vector3f;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
@@ -70,6 +73,10 @@ public abstract class AbstractPump extends MultiblockDevice implements ComplexDi
             this.textScale = textScale;
         }
 
+        public boolean isInUse() {
+            return holdingPlayer != null || connectedVehicle != null;
+        }
+
         public void removeDisplays() {
             if (cable != null) cable.remove();
             if (mtd != null) mtd.remove();
@@ -82,7 +89,7 @@ public abstract class AbstractPump extends MultiblockDevice implements ComplexDi
 
         @Override
         public String getActiveState() {
-            return (connectedVehicle != null && isConsumingPower()) ? "PUMPING" : "IDLE";
+            return isInUse() ? "IN-USE" : "IDLE";
         }
 
         @Override
@@ -123,6 +130,12 @@ public abstract class AbstractPump extends MultiblockDevice implements ComplexDi
     protected abstract DeviceMenu createMenu();
 
     @Override
+    public void openDeviceInventory(Player player) {
+        if (player.isSneaking()) return;
+        super.openDeviceInventory(player);
+    }
+
+    @Override
     public void updateUI() {
         if (getInventory() == null) recreateInv();
         if (menu == null) menu = createMenu();
@@ -137,15 +150,24 @@ public abstract class AbstractPump extends MultiblockDevice implements ComplexDi
     @Override
     public String getActiveState() {
         if (nozzles == null) return "IDLE";
-        StringBuilder state = new StringBuilder("PUMPING");
-        boolean anyPumping = false;
+
+        List<Integer> inUseIndices = new ArrayList<>();
         for (PumpNozzle nozzle : nozzles) {
-            if (nozzle.connectedVehicle != null && isConsumingPower()) {
-                state.append("_").append(nozzle.index);
-                anyPumping = true;
+            if (nozzle.isInUse()) {
+                inUseIndices.add(nozzle.index);
             }
         }
-        return anyPumping ? state.toString() : "IDLE";
+
+        if (inUseIndices.isEmpty()) {
+            return "IDLE";
+        }
+
+        Collections.sort(inUseIndices);
+        StringBuilder state = new StringBuilder("IN-USE");
+        for (int index : inUseIndices) {
+            state.append("_").append(index);
+        }
+        return state.toString();
     }
 
     @Override
@@ -210,7 +232,7 @@ public abstract class AbstractPump extends MultiblockDevice implements ComplexDi
     private void drawCables() {
         if (nozzles == null) return;
         for (PumpNozzle nozzle : nozzles) {
-            Location start = getLocationREADONLY().clone().add(0.5, 1.4, 0.5);
+            Location start = getLocationREADONLY().clone().add(0.55, 1.4, 0.5);
             Vector offset = RotationUtil.rotateVector(nozzle.cableLocalOffset, getFacing());
             start.add(offset);
 
@@ -249,14 +271,14 @@ public abstract class AbstractPump extends MultiblockDevice implements ComplexDi
     private void updateTextDisplay() {
         if (nozzles == null) return;
         for (PumpNozzle nozzle : nozzles) {
-            Location textLoc = getLocationREADONLY().clone().add(0.5, 1.55, 0.5);
+            Location textLoc = getLocationREADONLY().clone().add(0.55, 1.35, 0.5);
             Vector offset = RotationUtil.rotateVector(nozzle.textLocalOffset, getFacing());
             textLoc.add(offset);
-            
+
             textLoc.setYaw(RotationUtil.getYawFromFace(getFacing()));
             textLoc.setPitch(0f);
 
-            Transformation transform = new Transformation(new org.joml.Vector3f(), new org.joml.Quaternionf(), new org.joml.Vector3f(nozzle.textScale, nozzle.textScale, nozzle.textScale), new org.joml.Quaternionf());
+            Transformation transform = new Transformation(new Vector3f(), new Quaternionf(), new Vector3f(nozzle.textScale, nozzle.textScale, nozzle.textScale), new Quaternionf());
 
             double totalCost = nozzle.sessionVolume * fuelCost;
 
@@ -265,12 +287,12 @@ public abstract class AbstractPump extends MultiblockDevice implements ComplexDi
             else if (nozzle.holdingPlayer != null) statusStr = ChatColor.YELLOW + "IN USE";
             else if (getStoredLiquid(getLiquidType()) <= 0) statusStr = ChatColor.RED + "EMPTY";
 
-            String text = ChatColor.GRAY + "SALE $\n" +
-                          ChatColor.WHITE + String.format("%05.2f", totalCost) + "\n\n" +
-                          ChatColor.GRAY + "LITERS\n" +
-                          ChatColor.WHITE + String.format("%05.2f", nozzle.sessionVolume) + "\n\n" +
-                          statusStr;
-            
+            String text = ChatColor.GRAY + "COST $\n" +
+                ChatColor.WHITE + String.format("%05.2f", totalCost) + "\n\n" +
+                ChatColor.GRAY + "LITERS\n" +
+                ChatColor.WHITE + String.format("%05.2f", nozzle.sessionVolume) + "\n\n" +
+                statusStr;
+
             nozzle.mtd.update(textLoc, text, transform, org.bukkit.Color.fromARGB(255, 10, 10, 10));
         }
     }
@@ -329,8 +351,9 @@ public abstract class AbstractPump extends MultiblockDevice implements ComplexDi
             availableNozzle.holdingPlayer = player.getUniqueId();
             ItemStack nozzleItem = CustomItemRegistry.get(FuelNozzleItem.ID).create(getLocationREADONLY());
             player.getInventory().setItemInMainHand(nozzleItem);
-            
+
             updateTextDisplay();
+            ComplexDisplayManager.sync(this, this, true);
 
             MineUtil.sendMessage(player, ChatColor.GREEN + "You grabbed the fuel nozzle. Right-click a vehicle to connect.");
             player.playSound(player.getLocation(), Sound.ITEM_ARMOR_EQUIP_IRON, 1.0f, 1.0f);
@@ -373,7 +396,7 @@ public abstract class AbstractPump extends MultiblockDevice implements ComplexDi
 
         String plate = VehicleUtils.getLicensePlate(clickedEntity);
         if (plate == null) return;
-        
+
         handleVehicleConnection(player, plate);
     }
 
@@ -391,6 +414,7 @@ public abstract class AbstractPump extends MultiblockDevice implements ComplexDi
                 }
                 if (nozzle.cable != null) nozzle.cable.remove();
                 updateTextDisplay();
+                ComplexDisplayManager.sync(this, this, true);
                 break;
             }
         }
@@ -410,6 +434,7 @@ public abstract class AbstractPump extends MultiblockDevice implements ComplexDi
         nozzle.fuelingPlayer = null;
         if (nozzle.cable != null) nozzle.cable.remove();
         updateTextDisplay();
+        ComplexDisplayManager.sync(this, this, true);
     }
 
     @Override
@@ -472,13 +497,13 @@ public abstract class AbstractPump extends MultiblockDevice implements ComplexDi
                 setConsumingPower(true);
                 powerConsumed = true;
             }
-            
+
             removeLiquid(getLiquidType(), pumpAmount);
             nozzle.sessionVolume += pumpAmount;
 
             double fuelToAdd = pumpAmount * getFuelRatio();
             double newFuel = Math.min(100.0, currentFuel + fuelToAdd);
-            
+
             VehicleUtils.setFuel(nozzle.connectedVehicle, newFuel);
             setFailReason("None");
 

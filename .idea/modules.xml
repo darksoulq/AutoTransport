@@ -4,6 +4,7 @@
     <modules>
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/AutoTransport.iml" filepath="$PROJECT_DIR$/.idea/modules/AutoTransport.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/AutoTransport.main.iml" filepath="$PROJECT_DIR$/.idea/modules/AutoTransport.main.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/AutoTransport.test.iml" filepath="$PROJECT_DIR$/.idea/modules/AutoTransport.test.iml" />
     </modules>
   </component>
 </project>

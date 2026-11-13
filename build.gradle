@@ -1,6 +1,7 @@
 plugins {
     id 'java'
-    id("xyz.jpenilla.run-paper") version "2.3.1"
+    id("xyz.jpenilla.run-paper") version "3.1.0"
+    id("io.papermc.paperweight.userdev") version "2.0.0-beta.24"
 }
 
 group = 'com.github.darksoulq'
@@ -20,8 +21,9 @@ repositories {
 }
 
 dependencies {
-    compileOnly("io.papermc.paper:paper-api:1.21.11-R0.1-SNAPSHOT")
-    compileOnly('com.MT:MTP:0.99')
+    paperweight.paperDevBundle("26.3.build.+")
+    compileOnly('com.MT:Minetorio:1.0.1')
+    implementation 'io.github.darksoulq:MTMultiblocks:0.3'
     compileOnly("com.github.MilkBowl:VaultAPI:1.7") {
         exclude group: "org.bukkit", module: "bukkit"
     }
@@ -30,12 +32,12 @@ dependencies {
 
 tasks {
     runServer {
-        minecraftVersion("1.21.11")
+        minecraftVersion("26.3")
         jvmArgs('-Xms512M', '-Xmx1G')
     }
 }
 
-def targetJavaVersion = 21
+def targetJavaVersion = 25
 java {
     def javaVersion = JavaVersion.toVersion(targetJavaVersion)
     sourceCompatibility = javaVersion

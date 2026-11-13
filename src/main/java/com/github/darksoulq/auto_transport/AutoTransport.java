@@ -1,48 +1,25 @@
 package com.github.darksoulq.auto_transport;
 
-import com.github.darksoulq.auto_transport.device.DeviceEvents;
-import com.github.darksoulq.auto_transport.device.FuelPump;
+import com.MT.xxxtrigger50xxx.Guide.ItemMenu;
 import com.github.darksoulq.auto_transport.device.GarageDoor;
-import com.github.darksoulq.auto_transport.device.display.ComplexDisplayManager;
-import com.github.darksoulq.auto_transport.device.display.DisplayCullingManager;
-import com.github.darksoulq.auto_transport.device.items.FuelNozzleItem;
-import com.github.darksoulq.auto_transport.device.items.GarageRemoteItem;
-import com.github.darksoulq.auto_transport.item.CustomItemListener;
-import com.github.darksoulq.auto_transport.item.CustomItemRegistry;
-import com.github.darksoulq.auto_transport.multiblock.MultiblockPreviewManager;
-import com.github.darksoulq.auto_transport.util.VaultHook;
-import org.bukkit.Bukkit;
+import com.github.darksoulq.auto_transport.util.DeviceRegistration;
+import com.github.darksoulq.auto_transport.util.DeviceRegistry;
 import org.bukkit.plugin.java.JavaPlugin;
-import org.bukkit.scheduler.BukkitRunnable;
 
 public final class AutoTransport extends JavaPlugin {
 
     @Override
     public void onEnable() {
-        Bukkit.getServer().getPluginManager().registerEvents(new DeviceEvents(), this);
-        Bukkit.getServer().getPluginManager().registerEvents(new CustomItemListener(), this);
-        new BukkitRunnable() {
-            @Override
-            public void run() {
-                VaultHook.setupEconomy();
-            }
-        }.runTask(this);
+        DeviceRegistry deviceRegistry = new DeviceRegistry(this);
 
-        CustomItemRegistry.register(new FuelNozzleItem());
-        CustomItemRegistry.register(new GarageRemoteItem());
+        DeviceRegistration garageDoor = new DeviceRegistration(GarageDoor.CLASS_NAME)
+            .description("An extendable garage door that can be disguised with solid blocks.")
+            .category(ItemMenu.Category.AUTOMATION)
+            .deviceClass(GarageDoor.class)
+            .prototype(() -> new GarageDoor(null));
 
-        MultiblockPreviewManager.start();
-        DisplayCullingManager.start();
-        ComplexDisplayManager.start();
+        deviceRegistry.register(garageDoor);
 
-        FuelPump.addDevice();
-        GarageDoor.addDevice();
-    }
-
-    @Override
-    public void onDisable() {
-        MultiblockPreviewManager.stop();
-        DisplayCullingManager.stop();
-        ComplexDisplayManager.stop();
+        deviceRegistry.initialize();
     }
 }

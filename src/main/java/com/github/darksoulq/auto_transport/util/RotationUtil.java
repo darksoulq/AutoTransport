@@ -1,4 +1,4 @@
-package com.github.darksoulq.auto_transport.multiblock;
+package com.github.darksoulq.auto_transport.util;
 
 import org.bukkit.Axis;
 import org.bukkit.block.BlockFace;
@@ -12,6 +12,10 @@ import org.bukkit.util.Vector;
 public class RotationUtil {
 
     public static BlockFace getPlayerFacing(Player player) {
+        float pitch = player.getLocation().getPitch();
+        if (pitch <= -45.0F) return BlockFace.UP;
+        if (pitch >= 45.0F) return BlockFace.DOWN;
+
         float yaw = player.getLocation().getYaw() % 360.0F;
         if (yaw < 0.0F) yaw += 360.0F;
         if (yaw >= 45.0F && yaw < 135.0F) return BlockFace.WEST;
@@ -42,6 +46,8 @@ public class RotationUtil {
             case WEST -> new Vector(-z, y, x);
             case NORTH -> new Vector(-x, y, -z);
             case EAST -> new Vector(z, y, -x);
+            case UP -> new Vector(x, z, -y);
+            case DOWN -> new Vector(x, -z, y);
             default -> new Vector(x, y, z);
         };
     }

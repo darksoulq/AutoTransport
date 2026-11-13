@@ -8,9 +8,12 @@ dependencies:
     Minetorio:
       required: true
       load: BEFORE
-    MTVehicles:
+    MTMultiblocks:
       required: true
       load: BEFORE
-    Vault:
-      required: true
-      load: BEFORE
+#    MTVehicles:
+#      required: true
+#      load: BEFORE
+#    Vault:
+#      required: true
+#      load: BEFORE

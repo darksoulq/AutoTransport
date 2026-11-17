@@ -68,7 +68,7 @@ public class GarageDoor extends MultiblockDevice {
         super(loc);
         this.deviceName = CLASS_NAME;
         this.setMaterial("SMOOTH_STONE");
-        this.setIdlePower(15);
+        this.setIdlePower(2);
         this.setActionPower(0);
         this.setUseUI(true);
         this.setOpenable(false);

@@ -4,9 +4,9 @@ import com.MT.xxxtrigger50xxx.Devices.Device;
 import com.MT.xxxtrigger50xxx.MineMain;
 import com.github.darksoulq.auto_transport.choice.AnySolidChoice;
 import com.github.darksoulq.mt_multiblocks.BlueprintContext;
-import com.github.darksoulq.mt_multiblocks.MTMultiblock;
 import com.github.darksoulq.mt_multiblocks.MultiblockBlueprint;
 import com.github.darksoulq.mt_multiblocks.OptionalComponent;
+import com.github.darksoulq.mt_multiblocks.core.MultiblockDevice;
 import com.github.darksoulq.mt_multiblocks.core.PortProxyDevice;
 import com.github.darksoulq.mt_multiblocks.port.BasicStructuralPort;
 import org.bukkit.Bukkit;
@@ -28,6 +28,7 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.util.Transformation;
 import org.bukkit.util.Vector;
 
+import java.io.Serial;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -35,8 +36,9 @@ import java.util.List;
 import java.util.Queue;
 import java.util.Set;
 
-public class GarageDoor extends Device implements MTMultiblock {
+public class GarageDoor extends MultiblockDevice {
 
+    @Serial
     private static final long serialVersionUID = 1L;
     public static final String CLASS_NAME = "Garage Door";
     public static final int MAX_EXTENSION = 10;

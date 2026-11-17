@@ -14,6 +14,14 @@ repositories {
         url = "https://repo.papermc.io/repository/maven-public/"
     }
 
+    maven {
+        name = 'Central Portal Snapshots'
+        url = 'https://central.sonatype.com/repository/maven-snapshots/'
+        mavenContent {
+            snapshotsOnly()
+        }
+    }
+
     maven { url 'https://jitpack.io' }
     flatDir {
         dirs 'lib'
@@ -23,7 +31,7 @@ repositories {
 dependencies {
     paperweight.paperDevBundle("26.3.build.+")
     compileOnly('com.MT:Minetorio:1.0.1')
-    implementation 'io.github.darksoulq:MTMultiblocks:0.3'
+    implementation 'io.github.darksoulq:MTMultiblocks:0.4'
     compileOnly("com.github.MilkBowl:VaultAPI:1.7") {
         exclude group: "org.bukkit", module: "bukkit"
     }
